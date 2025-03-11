@@ -40,20 +40,18 @@
 
 ## 🚀 Utilisation
 
-### 🔍 **Exécuter un scan local**
+### 🔍 **Exécuter les requirements**
 ```powershell
-.\postscanlocal.ps1
+.\requirement.ps1
 ```
+### 🛠 **Exécuter les scripts de manière automatiser**
+```powershell
+.\launcher.ps1
+```
+Le script lancera : 
 
-### 🌐 **Exécuter un scan réseau**
-```bash
-python3 scan_network.py
-```
-
-### 🛠 **Automatiser les scans**
-```bash
-./launcher.sh
-```
+-> Scan en local avec .\postscanlocal.ps1
+-> Scan réseau avec .\scan_network.py
 
 📌 **Remarque :** Certains scripts nécessitent des **droits administrateurs**.
 
@@ -61,13 +59,12 @@ python3 scan_network.py
 
 ## 🛠️ Technologies utilisées
 - **Python** (nmap, psutil, socket, ipaddress)
-- **PowerShell** (audit des permissions)
+- **PowerShell** 
 - **Bash** (automation)
 
 ---
 
 ## 📧 Contact
-📌 **Auteur :** [Votre Nom]  
-📌 **Email :** [Votre Email]  
+📌 **Auteur :** [HawKey]  
 📌 **Projet PTUT - 2024/2025**
 

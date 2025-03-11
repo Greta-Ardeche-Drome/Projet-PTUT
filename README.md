@@ -28,6 +28,8 @@
 
 ✅ Mise à jour de `scan_network.py` pour :
 - Ajouter la détection des **versions des services** sur les ports ouverts.
+- Ajout d'une API pour récupérer les CVE en fonction des versions trouvées.
+- Ajout d'un résultat en HTML avec tableau pour simplifier la lecture.
 
 ---
 

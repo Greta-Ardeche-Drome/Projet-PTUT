@@ -14,3 +14,6 @@ Création d'un script pour faire un scan en réseau :  Récupère  l'ensemble de
 
 Puis découvre les ports ouverts sur les adresses IP du réseau.
 
+le 11/03/2025 : Création d'un script 'launcher' pour automatiser le lancement des scripts "postscanlocal.ps1" et "scan_network.py"
+
+Update du script scan_network.py pour ajouter le scan des versions des services 

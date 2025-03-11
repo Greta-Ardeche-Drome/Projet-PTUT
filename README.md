@@ -36,7 +36,9 @@
 |-----------|--------------|
 | `postscanlocal.ps1` | Scan local des permissions et fichiers sensibles (Windows) |
 | `scan_network.py` | Scan réseau des machines et des ports ouverts (Windows/Linux) |
-| `launcher.sh` | Script pour automatiser le lancement des scans |
+| `launcher.ps1` | Script pour automatiser le lancement des scans |
+| `requirement.ps1` | Script pour télécharger les prérequis pour la suite (Windows)|
+
 
 ## 🚀 Utilisation
 

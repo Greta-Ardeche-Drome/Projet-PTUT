@@ -50,9 +50,10 @@
 ```powershell
 .\launcher.ps1
 ```
-Le script lancera : 
+### **Le script lancera** : 
 
 -> Scan en local avec .\postscanlocal.ps1
+
 -> Scan réseau avec .\scan_network.py
 
 📌 **Remarque :** Certains scripts nécessitent des **droits administrateurs**.

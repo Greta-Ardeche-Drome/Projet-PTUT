@@ -27,6 +27,7 @@ Write-Host "Nouvelle version de pip : $(pip --version)"
 
 Write-Host "Installation des modules Python : pycvesearch, python-nmap, pyfiglet, paramiko, psutil"
 
+python -m pip install --user tabulate
 python -m pip install --user pycvesearch
 python -m pip install --user python-nmap
 python -m pip install --user pyfiglet

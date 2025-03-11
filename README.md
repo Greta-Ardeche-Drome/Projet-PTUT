@@ -10,5 +10,7 @@ Création d'un script sous linux/MacOS permettant de vérifier les droits d'un u
 
 le 7/02/2025 : 
 
-Création d'un script pour faire un scan en réseau :  Récupère  l'ensemble des cartes réseaux et scan la carte souhaité à partir du masque de sous réseau ainsi que l'adresse réseau.
+Création d'un script pour faire un scan en réseau :  Récupère  l'ensemble des cartes réseaux et scan la carte souhaitée à partir du masque de sous réseau ainsi que l'adresse réseau.
+
+Puis découvre les ports ouverts sur les adresses IP du réseau.
 

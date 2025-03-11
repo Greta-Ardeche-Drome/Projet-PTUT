@@ -22,46 +22,65 @@ def get_interface_info(interface):
     addresses = psutil.net_if_addrs().get(interface, [])
     for addr in addresses:
         if addr.family == socket.AF_INET:  # Adresse IPv4
-            ip_address = addr.address
-            netmask = addr.netmask
-            return ip_address, netmask
+            return addr.address, addr.netmask
     return None, None
 
 def calculate_network_range(ip_address, netmask):
     """Calcule la plage réseau en fonction de l'adresse IP et du masque."""
-    network = ipaddress.IPv4Network(f"{ip_address}/{netmask}", strict=False)
-    return network
+    return ipaddress.IPv4Network(f"{ip_address}/{netmask}", strict=False)
 
 def scan_network(network_range, filename):
-    """Effectue un scan réseau avec nmap pour détecter les machines actives et leurs ports ouverts."""
+    """Effectue un scan réseau avec nmap pour détecter les machines actives, leurs ports ouverts et les versions des services."""
     nm = nmap.PortScanner()
-    print("[INFO] Scan du réseau en cours...")
+    print("[INFO] Scan du réseau en cours...\n")
 
-    # Scanner toute la plage réseau avec un ping scan (-sn)
+    # Scanner les hôtes actifs sur la plage réseau
     nm.scan(hosts=str(network_range), arguments="-sn")
-
     active_hosts = nm.all_hosts()
-    
+
     with open(filename, "w") as f:
         f.write(f"Scan réseau effectué le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"Plage réseau : {network_range}\n")
-        f.write("[INFO] Machines détectées :\n")
+        f.write(f"Plage réseau : {network_range}\n\n")
 
         if active_hosts:
             for host in active_hosts:
-                f.write(f"Machine trouvée : {host}\n")
-                print(f"[INFO] Machine trouvée : {host}")
+                f.write(f"Nmap scan report for {host}\n")
+                print(f"Nmap scan report for {host}")
                 
-                # Scanner les ports ouverts (1-65535)
-                nm.scan(host, arguments="-p 1-65535 --open")
-                open_ports = nm[host].all_tcp()
+                # Scanner les ports ouverts et les versions des services
+                nm.scan(host, arguments="-p 1-65535 --open -sV")
+                
+                if "mac" in nm[host]["addresses"]:
+                    mac_address = nm[host]["addresses"]["mac"]
+                    f.write(f"MAC Address: {mac_address}\n")
+                    print(f"MAC Address: {mac_address}")
+
+                if "osmatch" in nm[host] and nm[host]["osmatch"]:
+                    os_name = nm[host]["osmatch"][0]["name"]
+                    f.write(f"OS: {os_name}\n")
+                    print(f"OS: {os_name}")
+
+                open_ports = nm[host].all_protocols()
 
                 if open_ports:
-                    f.write(f"Ports ouverts sur {host} : {', '.join(map(str, open_ports))}\n")
-                    print(f"[INFO] Ports ouverts sur {host} : {', '.join(map(str, open_ports))}")
+                    f.write("PORT\tSTATE\tSERVICE\tVERSION\n")
+                    print("PORT\tSTATE\tSERVICE\tVERSION")
+
+                    for proto in open_ports:
+                        for port in nm[host][proto].keys():
+                            service = nm[host][proto][port].get("name", "Unknown")
+                            state = nm[host][proto][port]["state"]
+                            version = nm[host][proto][port].get("version", "N/A")
+                            product = nm[host][proto][port].get("product", "N/A")
+
+                            f.write(f"{port}/{proto}\t{state}\t{service}\t{product} {version}\n")
+                            print(f"{port}/{proto}\t{state}\t{service}\t{product} {version}")
                 else:
-                    f.write(f"Aucun port ouvert détecté sur {host}.\n")
-                    print(f"[INFO] Aucun port ouvert détecté sur {host}.")
+                    f.write("No open ports found.\n")
+                    print("No open ports found.")
+
+                f.write("\n")
+                print("\n")
         else:
             print("[INFO] Aucune machine active détectée.")
             f.write("[INFO] Aucune machine active détectée.\n")
@@ -88,7 +107,7 @@ if __name__ == "__main__":
         
         # Créer le fichier de sortie avec la date du jour
         date_str = datetime.now().strftime("%Y-%m-%d")
-        filename = f"C:\\Users\\Iutuser\\Documents\\Projet PTUT Script\\Rapport Scan Réseau\\scan_{date_str}.txt"
+        filename = f"C:\\Audit\\scan_{date_str}.txt"
         
         # Vérifier que le dossier existe, sinon le créer
         os.makedirs(os.path.dirname(filename), exist_ok=True)

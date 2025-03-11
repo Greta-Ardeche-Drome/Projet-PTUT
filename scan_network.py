@@ -33,26 +33,39 @@ def calculate_network_range(ip_address, netmask):
     return network
 
 def scan_network(network_range, filename):
-    """Effectue un scan réseau pour détecter les machines actives et affiche la progression."""
+    """Effectue un scan réseau avec nmap pour détecter les machines actives et leurs ports ouverts."""
     nm = nmap.PortScanner()
     print("[INFO] Scan du réseau en cours...")
+
+    # Scanner toute la plage réseau avec un ping scan (-sn)
+    nm.scan(hosts=str(network_range), arguments="-sn")
+
+    active_hosts = nm.all_hosts()
     
-    # Ouvrir le fichier de sortie
     with open(filename, "w") as f:
         f.write(f"Scan réseau effectué le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Plage réseau : {network_range}\n")
         f.write("[INFO] Machines détectées :\n")
-        
-        # Scanner chaque hôte dans la plage
-        for ip in network_range.hosts():
-            print(f"[INFO] Scan en cours pour {ip}...")
-            nm.scan(str(ip), '1-65535')  # Scanner tous les ports de 1 à 65535
-            if nm.all_hosts():
-                for host in nm.all_hosts():
-                    f.write(f"Machine trouvée : {host}\n")
-                    print(f"[INFO] Machine trouvée : {host}")
-            else:
-                print(f"[INFO] Aucune machine trouvée pour {ip}")
+
+        if active_hosts:
+            for host in active_hosts:
+                f.write(f"Machine trouvée : {host}\n")
+                print(f"[INFO] Machine trouvée : {host}")
+                
+                # Scanner les ports ouverts (1-65535)
+                nm.scan(host, arguments="-p 1-65535 --open")
+                open_ports = nm[host].all_tcp()
+
+                if open_ports:
+                    f.write(f"Ports ouverts sur {host} : {', '.join(map(str, open_ports))}\n")
+                    print(f"[INFO] Ports ouverts sur {host} : {', '.join(map(str, open_ports))}")
+                else:
+                    f.write(f"Aucun port ouvert détecté sur {host}.\n")
+                    print(f"[INFO] Aucun port ouvert détecté sur {host}.")
+        else:
+            print("[INFO] Aucune machine active détectée.")
+            f.write("[INFO] Aucune machine active détectée.\n")
+
     print("[INFO] Scan terminé. Résultats enregistrés.")
 
 if __name__ == "__main__":
@@ -75,8 +88,11 @@ if __name__ == "__main__":
         
         # Créer le fichier de sortie avec la date du jour
         date_str = datetime.now().strftime("%Y-%m-%d")
-        filename = f"C:\\Users\\Iutuser\\Documents\\Projet PTUT Script\\scan_{date_str}.txt"
+        filename = f"C:\\Users\\Iutuser\\Documents\\Projet PTUT Script\\Rapport Scan Réseau\\scan_{date_str}.txt"
         
+        # Vérifier que le dossier existe, sinon le créer
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+
         # Effectuer un scan réseau et enregistrer les résultats
         scan_network(network_range, filename)
     else:

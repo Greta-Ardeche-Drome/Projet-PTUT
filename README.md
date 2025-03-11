@@ -7,3 +7,8 @@ Le script permet de faire un scan en local pour vérifier les permissions sur de
 le 12/12/2024 : 
 
 Création d'un script sous linux/MacOS permettant de vérifier les droits d'un utilisateur en local.
+
+le 7/02/2025 : 
+
+Création d'un script pour faire un scan en réseau :  Récupère  l'ensemble des cartes réseaux et scan la carte souhaité à partir du masque de sous réseau ainsi que l'adresse réseau.
+

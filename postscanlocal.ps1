@@ -1,3 +1,4 @@
+# Définition des dossiers critiques à vérifier
 $criticalFolders = @(
     "C:\Windows",
     "C:\Windows\System32", 
@@ -8,62 +9,163 @@ $criticalFolders = @(
     "C:\Windows\Temp"
 )
 
+# Ajout d'une boîte de dialogue pour nommer le dossier de rapport
 Add-Type -AssemblyName Microsoft.VisualBasic
 $dossierNom = [Microsoft.VisualBasic.Interaction]::InputBox("Quel nom voulez-vous donner au dossier de rapport ?", "Scan Permissions", "")
 
 if ($dossierNom) {
-    $basePath = "C:\Audit"
+    # Chemin de base pour les rapports
+    $basePath = "C:\Users\Iutuser\Documents\Projet PTUT Script"
     $dossierChemin = Join-Path $basePath $dossierNom
     
+    # Création du dossier si inexistant
     if (!(Test-Path $dossierChemin)) {
-        New-Item -Type Directory $dossierChemin | Out-Null
+        New-Item -Type Directory -Path $dossierChemin | Out-Null
     }
     
+    # Nom du fichier avec horodatage
     $date = Get-Date -Format "MM-yyyy-HH-mm"
-    $fichierChemin = Join-Path $dossierChemin "$date.txt"
+    $fichierChemin = Join-Path $dossierChemin "$date.html"
     
-    # Préparer le rapport complet
-    $rapportComplet = @"
-FULL SYSTEM SECURITY REPORT
-===================================
+    # Début du code HTML
+    $rapportHTML = @"
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport de Sécurité Système</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f7;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        header {
+            background: #2980b9;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #3498db;
+            font-size: 1.8em;
+            margin-top: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+        }
+        .section h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .permissions, .admin-users {
+            margin-top: 10px;
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            margin: 10px 0;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            padding: 8px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+        table th {
+            background-color: #3498db;
+            color: white;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        Rapport de Sécurité Système
+    </header>
+    <div class="container">
+        <h2>1. UTILISATEUR COURANT</h2>
+        <div class="section">
+            <p><strong>Nom:</strong> $env:USERNAME</p>
+            <p><strong>Droits administrateur:</strong> $(([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator"))</p>
+        </div>
 
-1. UTILISATEUR COURANT
----------------------
-Nom : $env:USERNAME
-Droits administrateur :$(([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator"))
-
-2. UTILISATEURS AVEC DROITS ADMINISTRATIFS
------------------------------------------
+        <h2>2. UTILISATEURS AVEC DROITS ADMINISTRATIFS</h2>
+        <div class="section admin-users">
 "@
 
-    # Ajouter les utilisateurs administrateurs
-    $rapportComplet += "`n" + ((Get-LocalGroupMember -Group "Administrateurs" | Format-Table -AutoSize | Out-String))
+    # Ajout des utilisateurs avec droits administratifs
+    try {
+        $adminUsers = Get-LocalGroupMember -Group "Administrateurs" | Format-Table Name, PrincipalSource -AutoSize | Out-String
+        $rapportHTML += "<pre>$adminUsers</pre>"
+    }
+    catch {
+        $rapportHTML += "<p class='error'>Erreur : Impossible de récupérer les utilisateurs administrateurs. Détails : $_</p>"
+    }
 
-    $rapportComplet += "`nPERMISSIONS DES DOSSIERS SYSTEMES"
-    $rapportComplet += "`n================================="
+    $rapportHTML += "<h2>3. PERMISSIONS DES DOSSIERS SYSTEMES</h2>"
 
+    # Ajout des permissions des dossiers critiques
     foreach ($folder in $criticalFolders) {
-        $rapportComplet += "`nVerification for: $folder"
-        $rapportComplet += "`n---------------------------------"
+        $rapportHTML += "<div class='section'><h3>Vérification pour : $folder</h3>"
         
         try {
-            $acl = Get-Acl $folder
+            # Récupération des permissions
+            $acl = Get-Acl $folder -ErrorAction Stop
             $permissions = $acl.Access | Where-Object { 
                 $_.IdentityReference -notlike "BUILTIN\*" -and 
                 $_.IdentityReference -notlike "NT AUTHORITY\*" 
             } | Format-Table IdentityReference, AccessControlType, FileSystemRights -AutoSize | Out-String
             
-            $rapportComplet += $permissions
+            if ($permissions) {
+                $rapportHTML += "<pre>$permissions</pre>"
+            }
+            else {
+                $rapportHTML += "<p>Aucune permission personnalisée trouvée.</p>"
+            }
         }
         catch {
-            $rapportComplet += "`nErreur de lecture : $_"
+            $rapportHTML += "<p class='error'>Erreur d'accès au dossier : $_</p>"
         }
+        $rapportHTML += "</div>"
     }
 
-    # Écrire le rapport dans le fichier
-    $rapportComplet | Out-File $fichierChemin
-    
-    Write-Host "Security report create : $fichierChemin"
-} else {
-    Write-Host "No name provided. Script cancelled."
+    # Fin du rapport HTML
+    $rapportHTML += @"
+    </div>
+</body>
+</html>
+"@
+
+    # Écriture du rapport HTML dans le fichier avec encodage UTF8
+    try {
+        $rapportHTML | Out-File -FilePath $fichierChemin -Encoding UTF8 -Force
+        Write-Host "Rapport de sécurité créé : $fichierChemin" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Erreur lors de l'écriture du fichier de rapport : $_" -ForegroundColor Red
+    }
+}
+else {
+    Write-Host "Aucun nom de dossier fourni. Script annulé." -ForegroundColor Yellow
 }

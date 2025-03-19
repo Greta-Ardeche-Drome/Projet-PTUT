@@ -31,6 +31,16 @@
 - Ajout d'une API pour récupérer les CVE en fonction des versions trouvées.
 - Ajout d'un résultat en HTML avec tableau pour simplifier la lecture.
 
+### 🔄 19/03/2025 – Automatisation & Améliorations
+
+✅ Mise à jour de `scan_network.py` pour :
+- Ajout du scan des CVE 
+- Résultat des CVE dans le rapport en html
+
+
+✅ Mise à jour de `postscanlocal.ps1` pour :
+- Ajout du rapport html pour un meilleur rendu
+  
 ---
 
 ## 📂 Contenu du projet

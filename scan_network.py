@@ -127,7 +127,7 @@ if __name__ == "__main__":
         print(f"[INFO] Plage réseau : {network_range}")
         
         date_str = datetime.now().strftime("%Y-%m-%d")
-        filename = f"C:\\Audit\\scan_{date_str}.html"
+        filename = f"C:\\Audit\\RapportCVE_{date_str}.html"
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         scan_network(network_range, filename)
     else:

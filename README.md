@@ -1,6 +1,6 @@
 # 🚀 Projet PTUT - HawKey 
 
-📅 **Date de début :** 20/11/2024  
+📅 **Date de début :** 20/10/2024  
 📌 **Description :** Ce projet regroupe plusieurs scripts permettant de réaliser des audits de sécurité en local et sur le réseau.
 
 ## 📌 Historique des mises à jour

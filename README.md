@@ -37,11 +37,14 @@
 - Ajout du scan des CVE 
 - Résultat des CVE dans le rapport en html
 
+### 🔄 27/05/2025 – Ajout du scan logiciel + modificication du scan local et rendu HTML
 
 ✅ Mise à jour de `postscanlocal.ps1` pour :
-- Ajout du rapport html pour un meilleur rendu
-  
+- Intégration du scan local + scan logiciel en même temps
+- Améliorations du rapport html pour un meilleur rendu 
 ---
+### 🔄 28/05/2025 – Amélioration du scan réseau
+- Améliorations du rapport html pour un meilleur rendu 
 
 ## 📂 Contenu du projet
 | 📜 Script | 📝 Description |

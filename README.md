@@ -39,8 +39,10 @@
 - Améliorations du rapport html pour un meilleur rendu 
 ---
 ### 🔄 28/05/2025 – Amélioration du scan réseau
-- Améliorations du rapport html pour un meilleur rendu 
+- Améliorations du rapport html pour un meilleur rendu
 
+### 🔄 03/05/2025 – Mise à jour de la documentation READme
+- Explication du fonctionnement du scan local + logiciels
 ## 📂 Contenu du projet
 | 📜 Script | 📝 Description |
 |-----------|--------------|

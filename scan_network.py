@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+# -*- coding: utf-8 -*-
+>>>>>>> bb94804 (refactor: Modification des chemins pour la clé USB)
 import socket
 import pyfiglet
 import ipaddress
@@ -248,7 +252,11 @@ if __name__ == "__main__":
         print(f"[INFO] Plage réseau : {network_range}")
         
         date_str = datetime.now().strftime("%Y-%m-%d")
+<<<<<<< HEAD
         filename = f"C:/Users/antho/Documents/Projet-PTUT/RapportCVE_{date_str}.html"
+=======
+        filename = f"E:/HawKey/Rapport/RapportCVE_{date_str}.html"
+>>>>>>> bb94804 (refactor: Modification des chemins pour la clé USB)
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         scan_network(network_range, filename)
     else:

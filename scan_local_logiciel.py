@@ -20,7 +20,7 @@ import ctypes
 from pathlib import Path
 
 class HawKeyLocalAudit:
-    def __init__(self, output_folder="C:/Temp/Audits"):
+    def __init__(self, output_folder="E:/HawKey/Rapport"):
         self.output_folder = output_folder
         self.ensure_output_folder()
         self.audit_results = {

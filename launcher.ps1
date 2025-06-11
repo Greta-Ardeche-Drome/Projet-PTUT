@@ -1,15 +1,16 @@
+# Encoding: UTF-8
 # Définition des chemins des scripts Python
-$scanlocal = "C:\Users\Iutuser\Documents\Projet PTUT Script\scan_local_logiciel.py"
-$scanreseau = "C:\Users\Iutuser\Documents\Projet PTUT Script\scan_network.py"
+$scanlocal = "E:\Hawkey\scan_local_logiciel.py"
+$scanreseau = "E:\Hawkey\\scan_network.py"
 
 # Exécuter le premier script Python et attendre qu'il se termine
-Write-Host "[INFO] Exécution de $scanlocal..."
+Write-Host "[INFO] Execution of $scanlocal..."
 python $scanlocal
-Write-Host "[INFO] $scanlocal terminé."
+Write-Host "[INFO] $scanlocal termined."
 
 # Exécuter le second script Python et attendre qu'il se termine
-Write-Host "[INFO] Exécution de $scanreseau..."
+Write-Host "[INFO] Execution of $scanreseau..."
 python $scanreseau
-Write-Host "[INFO] $scanreseau terminé."
+Write-Host "[INFO] $scanreseau termined."
 
-Write-Host "[INFO] Tous les scripts ont été exécutés avec succès."
+Write-Host "[INFO] All scripts were executed successfully."

@@ -1,7 +1,7 @@
 # Encoding: UTF-8
 # Définition des chemins des scripts Python
 $scanlocal = "E:\Hawkey\scan_local_logiciel.py"
-$scanreseau = "E:\Hawkey\\scan_network.py"
+$scanreseau = "E:\Hawkey\scan_network.py"
 
 # Exécuter le premier script Python et attendre qu'il se termine
 Write-Host "[INFO] Execution of $scanlocal..."

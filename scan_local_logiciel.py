@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-HawKey - Audit Local et Logiciels Unifié v2.1
+HawKey - Audit Local et Logiciels Unifié
 ============================================
 Script unifié pour l'audit de sécurité local et des logiciels
 Génère un rapport HTML consolidé avec design moderne et interactif
@@ -20,7 +20,7 @@ import ctypes
 from pathlib import Path
 
 class HawKeyLocalAudit:
-    def __init__(self, output_folder="E:/HawKey/Rapport"):
+    def __init__(self, output_folder="C:/Temp"):
         self.output_folder = output_folder
         self.ensure_output_folder()
         self.audit_results = {
@@ -30,7 +30,7 @@ class HawKeyLocalAudit:
             'statistics': {}
         }
 
-        # Liste complète des logiciels requis (Mises à jour Mai 2025)
+        # Liste complète des logiciels requis (Mises à jour Juin 2025)
         self.required_software = {
             # Navigateurs Web
             'Google Chrome': '125.0',
@@ -1112,7 +1112,7 @@ class HawKeyLocalAudit:
     <div class="container">
         <div class="header">
             <h1>🛡️ HawKey - Scan Local </h1>
-            <p>Rapport consolidé de sécurité système et logiciels - Version Premium</p>
+            <p>Rapport consolidé de sécurité système et logiciels</p>
             <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
                 🔍 {len(software_results)} logiciels analysés | 📊 Analyse approfondie | ⚡ Scan optimisé
             </div>
@@ -1361,14 +1361,6 @@ class HawKeyLocalAudit:
                 'action': 'Contrôle recommandé'
             })
 
-        if installed_count < len(software_results) * 0.3:
-            recommendations.append({
-                'title': '📦 Couverture Logicielle Faible',
-                'desc': f'Seulement {installed_count} logiciels installés sur {len(software_results)} recommandés.',
-                'priority': 'low',
-                'action': 'Évaluer les besoins'
-            })
-
         recommendations.extend([
             {
                 'title': '🔄 Audits Réguliers',
@@ -1520,7 +1512,7 @@ class HawKeyLocalAudit:
         </div>
 
         <div class="footer">
-            <p><strong>🛡️ Rapport généré par HawKey Security Suite v2.1</strong></p>
+            <p><strong>🛡️ Rapport généré par HawKey</strong></p>
             <p>📅 Date de génération: """ + datetime.datetime.now().strftime('%d/%m/%Y à %H:%M:%S') + f"""</p>
             <p>🔒 Audit local et logiciels consolidé - {len(software_results)} logiciels analysés</p>
             <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">

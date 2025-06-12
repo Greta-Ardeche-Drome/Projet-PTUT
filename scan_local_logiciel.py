@@ -29,7 +29,7 @@ class HawKeyLocalAudit:
             'software_audit': {},
             'statistics': {}
         }
-        
+
         # Liste complète des logiciels requis (Mises à jour Mai 2025)
         self.required_software = {
             # Navigateurs Web
@@ -243,7 +243,7 @@ class HawKeyLocalAudit:
             'Burp Suite': '2024.5.2',
             'OWASP ZAP': '2.15.0'
         }
-        
+
         # Définition des aliases pour les noms de logiciels
         self.software_aliases = {
             'Google Chrome': ['Chrome', 'GoogleChrome', 'Google Chrome Browser'],
@@ -304,7 +304,7 @@ class HawKeyLocalAudit:
             'LibreOffice': ['LibreOffice Writer', 'LibreOffice Calc'],
             'OpenOffice': ['Apache OpenOffice']
         }
-        
+
     def ensure_output_folder(self):
         """Créer le dossier de sortie"""
         try:
@@ -322,7 +322,7 @@ class HawKeyLocalAudit:
     def get_system_info(self):
         """Collecter les informations système"""
         print("[INFO] 🖥️ Collecte des informations système...")
-        
+
         try:
             self.audit_results['system_info'] = {
                 'computer_name': platform.node(),
@@ -342,12 +342,12 @@ class HawKeyLocalAudit:
     def get_admin_users(self):
         """Récupérer les utilisateurs administrateurs"""
         print("[INFO] 👥 Analyse des utilisateurs administrateurs...")
-        
+
         admin_users = []
         try:
             cmd = 'net localgroup Administrateurs'
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='cp850')
-            
+
             if result.returncode == 0:
                 lines = result.stdout.splitlines()
                 in_members = False
@@ -363,29 +363,29 @@ class HawKeyLocalAudit:
                             'name': line,
                             'source': 'Local'
                         })
-            
+
             if not admin_users and self.is_admin():
                 current_user = os.getenv('USERNAME', 'Current User')
                 admin_users.append({
                     'name': current_user,
                     'source': 'Current Session'
                 })
-            
+
             print(f"✅ {len(admin_users)} administrateur(s) trouvé(s)")
-            
+
         except Exception as e:
             print(f"❌ Erreur récupération admins: {e}")
             admin_users.append({
                 'name': os.getenv('USERNAME', 'Unknown'),
                 'source': 'Current Session (Fallback)'
             })
-        
+
         return admin_users
 
     def check_folder_permissions(self):
         """Vérifier les permissions des dossiers critiques"""
         print("[INFO] 🔒 Vérification des permissions...")
-        
+
         critical_folders = [
             "C:\\Windows",
             "C:\\Windows\\System32",
@@ -394,12 +394,12 @@ class HawKeyLocalAudit:
             "C:\\Users",
             "C:\\Windows\\Temp"
         ]
-        
+
         folder_permissions = []
-        
+
         for folder in critical_folders:
             print(f"  📁 Vérification: {folder}")
-            
+
             try:
                 permissions_data = {
                     'folder': folder,
@@ -407,12 +407,12 @@ class HawKeyLocalAudit:
                     'permissions': [],
                     'issues': []
                 }
-                
+
                 if os.path.exists(folder):
                     try:
                         test_files = os.listdir(folder)[:3]
                         permissions_data['permissions'].append(f"✅ Lecture autorisée ({len(test_files)} fichiers visibles)")
-                        
+
                         test_file = os.path.join(folder, "hawkey_test.tmp")
                         try:
                             with open(test_file, 'w') as f:
@@ -421,36 +421,36 @@ class HawKeyLocalAudit:
                             permissions_data['issues'].append("⚠️ Écriture autorisée - Risque de sécurité")
                         except (PermissionError, OSError):
                             permissions_data['permissions'].append("✅ Écriture protégée")
-                            
+
                     except PermissionError:
                         permissions_data['permissions'].append("🔒 Accès restreint (sécurisé)")
                     except Exception as e:
                         permissions_data['issues'].append(f"❌ Erreur: {str(e)[:40]}...")
-                
+
                 try:
                     cmd = f'icacls "{folder}"'
-                    result = subprocess.run(cmd, shell=True, capture_output=True, 
+                    result = subprocess.run(cmd, shell=True, capture_output=True,
                                           text=True, encoding='cp850', timeout=2)
-                    
+
                     if result.returncode == 0 and result.stdout:
                         lines = result.stdout.splitlines()[:3]
                         for line in lines:
                             if ':' in line and len(line) < 100:
                                 permissions_data['permissions'].append(line.strip()[:60] + "...")
-                        
+
                         stdout_lower = result.stdout.lower()
                         if 'everyone:(f)' in stdout_lower or 'tout le monde:(f)' in stdout_lower:
                             permissions_data['issues'].append("🚨 Permissions Everyone complètes!")
                         if 'users:(f)' in stdout_lower or 'utilisateurs:(f)' in stdout_lower:
                             permissions_data['issues'].append("⚠️ Permissions Users complètes!")
-                            
+
                 except subprocess.TimeoutExpired:
                     permissions_data['permissions'].append("⏰ Vérification interrompue (timeout)")
                 except Exception:
                     permissions_data['permissions'].append("ℹ️ Vérification icacls indisponible")
-                
+
                 folder_permissions.append(permissions_data)
-                
+
             except Exception as e:
                 folder_permissions.append({
                     'folder': folder,
@@ -458,27 +458,27 @@ class HawKeyLocalAudit:
                     'permissions': [],
                     'issues': [f"❌ Erreur: {str(e)[:50]}..."]
                 })
-        
+
         print(f"✅ Permissions vérifiées pour {len(critical_folders)} dossiers")
         return folder_permissions
 
     def get_software_audit(self):
         """Audit des logiciels (liste complète restaurée)"""
         print("[INFO] 📦 Audit des logiciels installés...")
-        
+
         software_results = []
         installed_software = self.get_installed_software()
-        
+
         total = len(self.required_software)
         progress = 0
-        
+
         for software, required_version in self.required_software.items():
             progress += 1
             percentage = round((progress / total) * 100)
             print(f"\r  📦 Progression: {percentage}% - {software[:30]}...", end="", flush=True)
-            
+
             installed = self.find_software_match(installed_software, software)
-            
+
             if installed:
                 version_ok = self.compare_versions(installed['DisplayVersion'], required_version)
                 software_results.append({
@@ -498,33 +498,33 @@ class HawKeyLocalAudit:
                     'up_to_date': False,
                     'status': 'Non installé'
                 })
-        
+
         print(f"\n✅ Audit de {len(self.required_software)} logiciels terminé")
         return software_results
 
     def get_installed_software(self):
         """Récupérer la liste des logiciels installés"""
         software = []
-        
+
         reg_paths = [
             (winreg.HKEY_LOCAL_MACHINE, r"Software\Microsoft\Windows\CurrentVersion\Uninstall"),
             (winreg.HKEY_LOCAL_MACHINE, r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
             (winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Uninstall")
         ]
-        
+
         for reg_hive, reg_path in reg_paths:
             try:
                 reg_key = winreg.OpenKey(reg_hive, reg_path)
-                
+
                 for i in range(winreg.QueryInfoKey(reg_key)[0]):
                     try:
                         subkey_name = winreg.EnumKey(reg_key, i)
                         subkey = winreg.OpenKey(reg_key, subkey_name)
-                        
+
                         try:
                             display_name = winreg.QueryValueEx(subkey, "DisplayName")[0]
                             display_version = winreg.QueryValueEx(subkey, "DisplayVersion")[0]
-                            
+
                             if display_name and display_version:
                                 software.append({
                                     'DisplayName': display_name,
@@ -536,11 +536,11 @@ class HawKeyLocalAudit:
                             winreg.CloseKey(subkey)
                     except:
                         pass
-                
+
                 winreg.CloseKey(reg_key)
             except:
                 continue
-        
+
         # Recherche des applications Windows Store
         try:
             result = subprocess.run(
@@ -562,24 +562,24 @@ class HawKeyLocalAudit:
                         })
         except:
             pass
-        
+
         return software
 
     def find_software_match(self, installed_list, software_name):
         """Trouver un logiciel dans la liste avec alias étendus"""
-        
+
         # Recherche directe
         matches = [s for s in installed_list if s['DisplayName'] == software_name]
 
         if not matches:
-            matches = [s for s in installed_list 
-                      if software_name.lower() in s['DisplayName'].lower() 
+            matches = [s for s in installed_list
+                      if software_name.lower() in s['DisplayName'].lower()
                       or s['DisplayName'].lower() in software_name.lower()]
 
         if not matches and software_name in self.software_aliases:
             for alias in self.software_aliases[software_name]:
-                alias_matches = [s for s in installed_list 
-                               if alias.lower() in s['DisplayName'].lower() 
+                alias_matches = [s for s in installed_list
+                               if alias.lower() in s['DisplayName'].lower()
                                or s['DisplayName'].lower() in alias.lower()]
                 if alias_matches:
                     matches = alias_matches
@@ -640,30 +640,30 @@ class HawKeyLocalAudit:
             'software_compliance': 0,
             'permission_issues': 0
         }
-        
+
         if 'folder_permissions' in self.audit_results['local_security']:
             for folder in self.audit_results['local_security']['folder_permissions']:
                 stats['permission_issues'] += len(folder.get('issues', []))
-        
+
         if 'software_results' in self.audit_results['software_audit']:
             total_soft = len(self.audit_results['software_audit']['software_results'])
             installed_soft = len([s for s in self.audit_results['software_audit']['software_results'] if s['installed']])
-            ok_soft = len([s for s in self.audit_results['software_audit']['software_results'] 
+            ok_soft = len([s for s in self.audit_results['software_audit']['software_results']
                           if s['installed'] and s['up_to_date']])
-            
+
             if installed_soft > 0:
                 stats['software_compliance'] = round((ok_soft / installed_soft) * 100, 1)
-        
+
         stats['total_issues'] = stats['permission_issues']
         if stats['permission_issues'] > 5:
             stats['security_score'] -= 20
         elif stats['permission_issues'] > 2:
             stats['security_score'] -= 10
-        
+
         if stats['software_compliance'] < 70:
             stats['security_score'] -= 15
             stats['critical_issues'] += 1
-        
+
         self.audit_results['statistics'] = stats
 
     def run_full_audit(self):
@@ -671,40 +671,40 @@ class HawKeyLocalAudit:
         print("\n" + "="*60)
         print("🔍 HAWKEY - AUDIT LOCAL ET LOGICIELS v2.1")
         print("="*60)
-        
+
         if not self.is_admin():
             print("⚠️ Ce script nécessite des droits d'administrateur pour un audit complet.")
             response = input("Continuer quand même? (O/N): ")
             if response.upper() != 'O':
                 return False
-        
+
         start_time = time.time()
-        
+
         self.get_system_info()
-        
+
         print("\n[PHASE 1] 🔒 Audit de sécurité local")
         admin_users = self.get_admin_users()
         folder_permissions = self.check_folder_permissions()
-        
+
         self.audit_results['local_security'] = {
             'admin_users': admin_users,
             'folder_permissions': folder_permissions
         }
-        
+
         print("\n[PHASE 2] 📦 Audit des logiciels")
         software_results = self.get_software_audit()
-        
+
         self.audit_results['software_audit'] = {
             'software_results': software_results
         }
-        
+
         self.calculate_statistics()
-        
+
         print("\n[PHASE 3] 📄 Génération du rapport")
         report_path = self.generate_html_report()
-        
+
         elapsed_time = time.time() - start_time
-        
+
         print(f"\n{'='*60}")
         print("📊 RÉSUMÉ DE L'AUDIT")
         print(f"{'='*60}")
@@ -714,32 +714,32 @@ class HawKeyLocalAudit:
         print(f"⚠️  Problèmes détectés: {self.audit_results['statistics']['total_issues']}")
         print(f"📄 Rapport: {report_path}")
         print(f"{'='*60}")
-        
+
         try:
             if platform.system() == "Windows":
                 os.startfile(report_path)
                 print("🌐 Rapport ouvert dans le navigateur")
         except:
             print("📄 Ouvrez manuellement le rapport")
-        
+
         return True
 
     def generate_html_report(self):
         """Générer le rapport HTML unifié avec design moderne et interactif"""
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = os.path.join(self.output_folder, f"hawkey_audit_unified_{timestamp}.html")
-        
+
         system_info = self.audit_results['system_info']
         local_security = self.audit_results['local_security']
         software_audit = self.audit_results['software_audit']
         stats = self.audit_results['statistics']
-        
+
         software_results = software_audit.get('software_results', [])
         installed_count = len([s for s in software_results if s['installed']])
         up_to_date_count = len([s for s in software_results if s['installed'] and s['up_to_date']])
         outdated_count = len([s for s in software_results if s['installed'] and not s['up_to_date']])
         missing_count = len([s for s in software_results if not s['installed']])
-        
+
         html = f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -748,48 +748,48 @@ class HawKeyLocalAudit:
     <title>HawKey - Audit Local et Logiciels v2.1</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }}
-        .container {{ 
-            max-width: 1400px; 
-            margin: 0 auto; 
-            background: white; 
-            border-radius: 15px; 
+        .container {{
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
         }}
-        .header {{ 
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); 
-            color: white; 
-            padding: 30px; 
-            text-align: center; 
+        .header {{
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
         }}
         .header h1 {{ font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }}
         .header p {{ font-size: 1.2em; opacity: 0.9; }}
         .content {{ padding: 30px; }}
-        
-        .summary-grid {{ 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
-            gap: 20px; 
-            margin-bottom: 30px; 
+
+        .summary-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
         }}
-        .summary-card {{ 
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); 
-            padding: 25px; 
-            border-radius: 12px; 
+        .summary-card {{
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 12px;
             text-align: center;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }}
-        .summary-card:hover {{ 
-            transform: translateY(-8px); 
+        .summary-card:hover {{
+            transform: translateY(-8px);
             box-shadow: 0 15px 30px rgba(0,0,0,0.15);
         }}
         .summary-card::before {{
@@ -801,40 +801,40 @@ class HawKeyLocalAudit:
             height: 4px;
             background: linear-gradient(90deg, #667eea, #764ba2);
         }}
-        .summary-card h3 {{ 
-            color: #2c3e50; 
-            margin-bottom: 15px; 
-            font-size: 2.2em; 
+        .summary-card h3 {{
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 2.2em;
             font-weight: 700;
         }}
-        .summary-card p {{ 
-            color: #495057; 
-            font-weight: 600; 
+        .summary-card p {{
+            color: #495057;
+            font-weight: 600;
             font-size: 1.1em;
         }}
-        
+
         .success-card {{ border-left: 4px solid #28a745; }}
         .warning-card {{ border-left: 4px solid #ffc107; }}
         .danger-card {{ border-left: 4px solid #dc3545; }}
         .info-card {{ border-left: 4px solid #17a2b8; }}
-        
-        .section {{ 
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); 
-            margin-bottom: 25px; 
-            border-radius: 12px; 
-            padding: 25px; 
+
+        .section {{
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            margin-bottom: 25px;
+            border-radius: 12px;
+            padding: 25px;
             border: 1px solid #dee2e6;
             box-shadow: 0 4px 8px rgba(0,0,0,0.05);
         }}
-        .section h2 {{ 
-            color: #2c3e50; 
-            margin-bottom: 20px; 
-            padding-bottom: 15px; 
-            border-bottom: 3px solid #007bff; 
+        .section h2 {{
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #007bff;
             font-size: 1.8em;
             font-weight: 600;
         }}
-        
+
         .filters {{
             margin-bottom: 25px;
             display: flex;
@@ -865,38 +865,38 @@ class HawKeyLocalAudit:
         .filter-success {{ background: linear-gradient(135deg, #28a745, #1e7e34); color: white; }}
         .filter-warning {{ background: linear-gradient(135deg, #ffc107, #e0a800); color: #212529; }}
         .filter-danger {{ background: linear-gradient(135deg, #dc3545, #c82333); color: white; }}
-        
+
         .table-container {{
             background: white;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }}
-        table {{ 
-            width: 100%; 
-            border-collapse: collapse; 
+        table {{
+            width: 100%;
+            border-collapse: collapse;
         }}
-        th {{ 
-            background: linear-gradient(135deg, #495057 0%, #6c757d 100%); 
-            color: white; 
-            padding: 15px 12px; 
+        th {{
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 15px 12px;
             text-align: left;
             font-weight: 600;
             font-size: 0.95em;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
-        td {{ 
-            padding: 12px; 
-            border-bottom: 1px solid #dee2e6; 
+        td {{
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
             vertical-align: middle;
         }}
-        tr:hover {{ 
+        tr:hover {{
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             transform: scale(1.01);
             transition: all 0.2s ease;
         }}
-        
+
         .status-badge {{
             padding: 6px 12px;
             border-radius: 20px;
@@ -905,59 +905,59 @@ class HawKeyLocalAudit:
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
-        .status-conforme {{ 
-            background: linear-gradient(135deg, #d4edda, #c3e6cb); 
-            color: #155724; 
+        .status-conforme {{
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
         }}
-        .status-obsolete {{ 
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7); 
-            color: #856404; 
+        .status-obsolete {{
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
         }}
-        .status-missing {{ 
-            background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
-            color: #721c24; 
+        .status-missing {{
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
         }}
-        .status-ok {{ 
-            background: linear-gradient(135deg, #d4edda, #c3e6cb); 
-            color: #155724; 
-            padding: 6px 12px; 
-            border-radius: 20px; 
+        .status-ok {{
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-weight: 600;
             font-size: 0.85em;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
-        .status-warning {{ 
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7); 
-            color: #856404; 
-            padding: 6px 12px; 
-            border-radius: 20px; 
+        .status-warning {{
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-weight: 600;
             font-size: 0.85em;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
-        .status-error {{ 
-            background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
-            color: #721c24; 
-            padding: 6px 12px; 
-            border-radius: 20px; 
+        .status-error {{
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-weight: 600;
             font-size: 0.85em;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
-        
-        .info-grid {{ 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-            gap: 20px; 
+
+        .info-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
             margin-bottom: 25px;
         }}
-        .info-item {{ 
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); 
-            padding: 20px; 
-            border-radius: 10px; 
+        .info-item {{
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 20px;
+            border-radius: 10px;
             border-left: 4px solid #17a2b8;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             transition: transform 0.2s ease;
@@ -972,30 +972,30 @@ class HawKeyLocalAudit:
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
-        
-        .permissions-box {{ 
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); 
-            padding: 15px; 
-            border-radius: 8px; 
-            font-family: 'Courier New', monospace; 
+
+        .permissions-box {{
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
             font-size: 0.85em;
             max-height: 200px;
             overflow-y: auto;
             border: 1px solid #dee2e6;
         }}
-        
-        .footer {{ 
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); 
-            padding: 25px; 
-            text-align: center; 
-            color: #6c757d; 
+
+        .footer {{
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            text-align: center;
+            color: #6c757d;
             border-top: 1px solid #dee2e6;
         }}
         .footer p {{
             margin: 5px 0;
             font-weight: 500;
         }}
-        
+
         .search-box {{
             margin-bottom: 20px;
             padding: 10px;
@@ -1011,7 +1011,7 @@ class HawKeyLocalAudit:
             border-color: #007bff;
             box-shadow: 0 0 10px rgba(0,123,255,0.3);
         }}
-        
+
         .progress-bar {{
             background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
             border-radius: 10px;
@@ -1029,7 +1029,7 @@ class HawKeyLocalAudit:
             font-weight: 600;
             font-size: 0.85em;
         }}
-        
+
         @media (max-width: 768px) {{
             .summary-grid {{ grid-template-columns: 1fr; }}
             .info-grid {{ grid-template-columns: 1fr; }}
@@ -1044,10 +1044,10 @@ class HawKeyLocalAudit:
         function filterTable(status) {{
             const rows = document.querySelectorAll('tbody tr');
             const buttons = document.querySelectorAll('.filter-btn');
-            
+
             buttons.forEach(btn => btn.classList.remove('active'));
             document.querySelector('.filter-' + status).classList.add('active');
-            
+
             rows.forEach(row => {{
                 const statusCell = row.cells[1].textContent.toLowerCase();
                 if (status === 'all') {{
@@ -1062,15 +1062,15 @@ class HawKeyLocalAudit:
                     row.style.display = 'none';
                 }}
             }});
-            
+
             updateVisibleCount();
         }}
-        
+
         function searchTable() {{
             const input = document.getElementById('searchInput');
             const filter = input.value.toLowerCase();
             const rows = document.querySelectorAll('tbody tr');
-            
+
             rows.forEach(row => {{
                 const text = row.textContent.toLowerCase();
                 if (text.includes(filter)) {{
@@ -1079,10 +1079,10 @@ class HawKeyLocalAudit:
                     row.style.display = 'none';
                 }}
             }});
-            
+
             updateVisibleCount();
         }}
-        
+
         function updateVisibleCount() {{
             const visibleRows = document.querySelectorAll('tbody tr[style=""], tbody tr:not([style])');
             const countElement = document.getElementById('visibleCount');
@@ -1090,7 +1090,7 @@ class HawKeyLocalAudit:
                 countElement.textContent = visibleRows.length;
             }}
         }}
-        
+
         function expandPermissions(element) {{
             const box = element.nextElementSibling;
             if (box.style.maxHeight === 'none') {{
@@ -1101,7 +1101,7 @@ class HawKeyLocalAudit:
                 element.textContent = '🔼 Voir moins';
             }}
         }}
-        
+
         window.onload = function() {{
             document.querySelector('.filter-all').classList.add('active');
             updateVisibleCount();
@@ -1111,13 +1111,13 @@ class HawKeyLocalAudit:
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛡️ HawKey - Audit Unifié v2.1</h1>
+            <h1>🛡️ HawKey - Scan Local </h1>
             <p>Rapport consolidé de sécurité système et logiciels - Version Premium</p>
             <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
                 🔍 {len(software_results)} logiciels analysés | 📊 Analyse approfondie | ⚡ Scan optimisé
             </div>
         </div>
-        
+
         <div class="content">
             <!-- Résumé Exécutif Premium -->
             <div class="summary-grid">
@@ -1148,7 +1148,7 @@ class HawKeyLocalAudit:
                     <p>Problèmes Permissions</p>
                 </div>
             </div>
-            
+
             <!-- Informations Système Premium -->
             <div class="section">
                 <h2>🖥️ Informations Système</h2>
@@ -1173,7 +1173,7 @@ class HawKeyLocalAudit:
                     </div>
                 </div>
             </div>
-            
+
             <!-- Utilisateurs Administrateurs -->
             <div class="section">
                 <h2>👥 Utilisateurs Administrateurs ({len(local_security.get('admin_users', []))})</h2>
@@ -1203,18 +1203,18 @@ class HawKeyLocalAudit:
                     </table>
                 </div>
             </div>
-            
+
             <!-- Audit des Logiciels avec Filtres Améliorés -->
             <div class="section">
                 <h2>📦 Audit des Logiciels</h2>
-                
+
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                     <input type="text" id="searchInput" class="search-box" placeholder="🔍 Rechercher un logiciel..." onkeyup="searchTable()">
                     <div style="color: #6c757d; font-weight: 500;">
                         <span id="visibleCount">{len(software_results)}</span> logiciel(s) affiché(s)
                     </div>
                 </div>
-                
+
                 <div class="filters">
                     <button class="filter-btn filter-all" onclick="filterTable('all')">
                         Tous ({len(software_results)})
@@ -1229,7 +1229,7 @@ class HawKeyLocalAudit:
                         ❌ Non Installés ({missing_count})
                     </button>
                 </div>
-                
+
                 <div class="table-container">
                     <table>
                         <thead>
@@ -1247,7 +1247,7 @@ class HawKeyLocalAudit:
             0 if x['status'] == 'Conforme' else 1 if x['status'] == 'Obsolète' else 2,
             x['software']
         ))
-        
+
         for software in software_sorted:
             if software['status'] == 'Conforme':
                 status_class = "status-conforme"
@@ -1257,8 +1257,8 @@ class HawKeyLocalAudit:
                 action = "⚠️ Mise à jour requise"
             else:
                 status_class = "status-missing"
-                action = "📥 Installation recommandée"
-                
+                action = "📥 Rien à signaler"
+
             html += f"""
                             <tr>
                                 <td><strong>{software['software']}</strong></td>
@@ -1273,7 +1273,7 @@ class HawKeyLocalAudit:
                     </table>
                 </div>
             </div>
-            
+
             <!-- Permissions des Dossiers Améliorées -->
             <div class="section">
                 <h2>🔒 Analyse des Permissions Système</h2>"""
@@ -1283,24 +1283,24 @@ class HawKeyLocalAudit:
             status = folder_data.get('status', 'unknown')
             issues = folder_data.get('issues', [])
             permissions = folder_data.get('permissions', [])
-            
+
             status_class = "success-card" if status == 'accessible' and not issues else "warning-card" if status == 'accessible' else "danger-card"
             status_text = "✅ Sécurisé" if status == 'accessible' and not issues else "⚠️ Attention" if issues else "❌ Erreur"
-            
+
             html += f"""
                 <div style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" class="{status_class}">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h3 style="margin: 0; color: #2c3e50; font-size: 1.2em;">📁 {folder_path}</h3>
                         <span class="status-{'ok' if not issues else 'warning' if status == 'accessible' else 'error'}">{status_text}</span>
                     </div>"""
-            
+
             if issues:
                 html += '<div style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">'
                 html += '<h4 style="color: #856404; margin-bottom: 10px;">⚠️ Problèmes détectés:</h4>'
                 for issue in issues:
                     html += f"<p style='margin: 8px 0; color: #856404; font-weight: 500;'>• {issue}</p>"
                 html += "</div>"
-            
+
             if permissions:
                 html += f'<button onclick="expandPermissions(this)" style="background: #17a2b8; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; margin: 10px 0; font-weight: 500;">🔍 Voir permissions</button>'
                 html += '<div class="permissions-box" style="margin-top: 10px;">'
@@ -1310,19 +1310,19 @@ class HawKeyLocalAudit:
                 if len(permissions) > 5:
                     html += f"<br><em style='color: #6c757d;'>... et {len(permissions) - 5} permission(s) supplémentaire(s)</em>"
                 html += "</div>"
-            
+
             html += "</div>"
 
         html += """
             </div>
-            
+
             <!-- Recommandations de Sécurité Améliorées -->
             <div class="section">
                 <h2>🎯 Recommandations Personnalisées</h2>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">"""
-        
+
         recommendations = []
-        
+
         if stats['security_score'] < 70:
             recommendations.append({
                 'title': '🚨 Score de Sécurité Critique',
@@ -1330,7 +1330,7 @@ class HawKeyLocalAudit:
                 'priority': 'critical',
                 'action': 'Corriger immédiatement'
             })
-        
+
         if outdated_count > 10:
             recommendations.append({
                 'title': '⚠️ Nombreux Logiciels Obsolètes',
@@ -1345,7 +1345,7 @@ class HawKeyLocalAudit:
                 'priority': 'medium',
                 'action': 'Mise à jour recommandée'
             })
-        
+
         if stats['permission_issues'] > 2:
             recommendations.append({
                 'title': '🔒 Permissions Sensibles Multiples',
@@ -1360,7 +1360,7 @@ class HawKeyLocalAudit:
                 'priority': 'medium',
                 'action': 'Contrôle recommandé'
             })
-        
+
         if installed_count < len(software_results) * 0.3:
             recommendations.append({
                 'title': '📦 Couverture Logicielle Faible',
@@ -1368,7 +1368,7 @@ class HawKeyLocalAudit:
                 'priority': 'low',
                 'action': 'Évaluer les besoins'
             })
-        
+
         recommendations.extend([
             {
                 'title': '🔄 Audits Réguliers',
@@ -1389,23 +1389,23 @@ class HawKeyLocalAudit:
                 'action': 'Test de restauration'
             }
         ])
-        
+
         for i, rec in enumerate(recommendations):
             priority_colors = {
                 'critical': ('#dc3545', '#721c24'),
-                'high': ('#fd7e14', '#fd7e14'), 
+                'high': ('#fd7e14', '#fd7e14'),
                 'medium': ('#ffc107', '#856404'),
                 'low': ('#28a745', '#155724')
             }
             bg_color, text_color = priority_colors.get(rec['priority'], ('#17a2b8', '#0c5460'))
-            
+
             priority_text = {
                 'critical': '🚨 CRITIQUE',
                 'high': '🔥 HAUTE',
                 'medium': '⚠️ MOYENNE',
                 'low': '✅ FAIBLE'
             }.get(rec['priority'], '📋 INFO')
-            
+
             html += f"""
                     <div style="padding: 25px; background: linear-gradient(135deg, white 0%, #f8f9fa 100%); border-radius: 12px; border-left: 5px solid {bg_color}; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
@@ -1417,11 +1417,11 @@ class HawKeyLocalAudit:
                             📋 Action: {rec['action']}
                         </div>
                     </div>"""
-        
+
         html += f"""
                 </div>
             </div>
-            
+
             <!-- Statistiques Détaillées -->
             <div class="section">
                 <h2>📊 Statistiques Détaillées</h2>
@@ -1445,9 +1445,9 @@ class HawKeyLocalAudit:
                         <strong>🔒 Sécurité Globale:</strong><br>
                         Score: {stats['security_score']}/100<br>
                         <small style="color: #6c757d;">
-                            {'🛡️ Excellent' if stats['security_score'] >= 90 else 
-                             '✅ Bon' if stats['security_score'] >= 80 else 
-                             '⚠️ Moyen' if stats['security_score'] >= 60 else 
+                            {'🛡️ Excellent' if stats['security_score'] >= 90 else
+                             '✅ Bon' if stats['security_score'] >= 80 else
+                             '⚠️ Moyen' if stats['security_score'] >= 60 else
                              '🚨 Faible'}
                         </small>
                     </div>
@@ -1463,17 +1463,17 @@ class HawKeyLocalAudit:
                     </div>
                 </div>
             </div>
-            
+
             <!-- Top 10 des Logiciels Critiques -->
             <div class="section">
                 <h2>🎯 Top 10 - Logiciels Critiques à Mettre à Jour</h2>
                 <div class="table-container">"""
-        
-        critical_software = [s for s in software_sorted if s['status'] == 'Obsolète' and 
-                           any(keyword in s['software'].lower() for keyword in 
-                               ['chrome', 'firefox', 'edge', 'java', 'python', 'windows defender', 
+
+        critical_software = [s for s in software_sorted if s['status'] == 'Obsolète' and
+                           any(keyword in s['software'].lower() for keyword in
+                               ['chrome', 'firefox', 'edge', 'java', 'python', 'windows defender',
                                 'office', 'teams', 'zoom', 'adobe'])][:10]
-        
+
         if critical_software:
             html += """
                     <table>
@@ -1487,14 +1487,14 @@ class HawKeyLocalAudit:
                             </tr>
                         </thead>
                         <tbody>"""
-            
+
             for i, soft in enumerate(critical_software, 1):
                 risk_level = {
                     1: ('🚨 CRITIQUE', 'status-error'),
                     2: ('🔥 TRÈS ÉLEVÉ', 'status-error'),
                     3: ('⚠️ ÉLEVÉ', 'status-warning')
                 }.get(i, ('⚠️ MOYEN', 'status-warning'))
-                
+
                 html += f"""
                             <tr>
                                 <td><strong>#{i}</strong></td>
@@ -1503,7 +1503,7 @@ class HawKeyLocalAudit:
                                 <td><code style="background: #d4edda; padding: 2px 6px; border-radius: 4px;">{soft['required_version']}</code></td>
                                 <td><span class="{risk_level[1]}">{risk_level[0]}</span></td>
                             </tr>"""
-            
+
             html += """
                         </tbody>
                     </table>"""
@@ -1513,12 +1513,12 @@ class HawKeyLocalAudit:
                         <h3>🎉 Excellent !</h3>
                         <p>Aucun logiciel critique n'est obsolète. Votre système est bien maintenu.</p>
                     </div>"""
-        
+
         html += """
                 </div>
             </div>
         </div>
-        
+
         <div class="footer">
             <p><strong>🛡️ Rapport généré par HawKey Security Suite v2.1</strong></p>
             <p>📅 Date de génération: """ + datetime.datetime.now().strftime('%d/%m/%Y à %H:%M:%S') + f"""</p>
@@ -1551,12 +1551,12 @@ def main():
     try:
         auditor = HawKeyLocalAudit()
         success = auditor.run_full_audit()
-        
+
         if success:
             print("\n✨ Audit terminé avec succès!")
         else:
             print("\n❌ Audit annulé")
-            
+
     except KeyboardInterrupt:
         print("\n⚠️ Audit interrompu par l'utilisateur")
     except Exception as e:
